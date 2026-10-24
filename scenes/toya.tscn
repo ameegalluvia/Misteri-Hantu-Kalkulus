@@ -262,7 +262,10 @@ script = ExtResource("1_7jasx")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1491692063]
 sprite_frames = SubResource("SpriteFrames_jps1b")
 animation = &"run_left"
-frame_progress = 0.4922984
+frame_progress = 0.95043224
+
+[node name="Camera2D" type="Camera2D" parent="AnimatedSprite2D" unique_id=1082058163]
+zoom = Vector2(2.76, 2.76)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1927620303]
 position = Vector2(0, 7)
