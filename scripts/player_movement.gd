@@ -1,7 +1,8 @@
+class_name Player
 extends CharacterBody2D
 
-@export var walk_speed = 20
-@export var run_speed = 25
+@export var walk_speed = 200
+@export var run_speed = 400
 
 @onready var anim = $AnimatedSprite2D
 
