@@ -1,10 +1,43 @@
 [gd_scene format=3 uid="uid://dx6dcuok8f8br"]
 
 [ext_resource type="Script" uid="uid://r3wh0u0j07uf" path="res://scripts/toya.gd" id="1_7jasx"]
+[ext_resource type="Texture2D" uid="uid://b7q0gfpwswe0u" path="res://assets/sprites/ghost idle.png" id="2_8alx8"]
 [ext_resource type="Texture2D" uid="uid://dr6lceuiatdmx" path="res://assets/sprites/ghost run left.png" id="2_ay36k"]
 [ext_resource type="Texture2D" uid="uid://b1ka4ayty5veg" path="res://assets/sprites/ghost run right.png" id="3_8alx8"]
 [ext_resource type="Texture2D" uid="uid://dn8pvohi42m13" path="res://assets/sprites/ghost walk left.png" id="4_dub1g"]
 [ext_resource type="Texture2D" uid="uid://cseauvjsogrne" path="res://assets/sprites/ghost walk right.png" id="5_4jx4i"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_dub1g"]
+atlas = ExtResource("2_8alx8")
+region = Rect2(0, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4jx4i"]
+atlas = ExtResource("2_8alx8")
+region = Rect2(48, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_khy4l"]
+atlas = ExtResource("2_8alx8")
+region = Rect2(96, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qdaxt"]
+atlas = ExtResource("2_8alx8")
+region = Rect2(144, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4ero0"]
+atlas = ExtResource("2_8alx8")
+region = Rect2(192, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_c0mqg"]
+atlas = ExtResource("2_8alx8")
+region = Rect2(240, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_li4mj"]
+atlas = ExtResource("2_8alx8")
+region = Rect2(288, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xyh7t"]
+atlas = ExtResource("2_8alx8")
+region = Rect2(336, 0, 48, 48)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_wj1r3"]
 atlas = ExtResource("2_ay36k")
@@ -138,6 +171,35 @@ region = Rect2(336, 0, 48, 48)
 animations = [{
 "frames": [{
 "duration": 1.0,
+"texture": SubResource("AtlasTexture_dub1g")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4jx4i")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_khy4l")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qdaxt")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4ero0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_c0mqg")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_li4mj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xyh7t")
+}],
+"loop": 1,
+"name": &"idle",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
 "texture": SubResource("AtlasTexture_wj1r3")
 }, {
 "duration": 1.0,
@@ -254,21 +316,23 @@ animations = [{
 }]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_jps1b"]
-radius = 8.246211
+radius = 5.3851647
 
 [node name="Toya" type="CharacterBody2D" unique_id=521602957]
 script = ExtResource("1_7jasx")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1491692063]
 sprite_frames = SubResource("SpriteFrames_jps1b")
-animation = &"run_left"
-frame_progress = 0.95043224
+animation = &"idle"
+frame_progress = 0.5781483
 
 [node name="Camera2D" type="Camera2D" parent="AnimatedSprite2D" unique_id=1082058163]
+rotation = 0.009413086
 zoom = Vector2(2.76, 2.76)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1927620303]
 position = Vector2(0, 7)
+rotation = 0.1524558
 shape = SubResource("CircleShape2D_jps1b")
 
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="." unique_id=2123465394]

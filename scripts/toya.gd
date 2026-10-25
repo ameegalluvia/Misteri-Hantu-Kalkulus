@@ -1,152 +1,175 @@
 class_name Toya
 extends CharacterBody2D
 
-# Kecepatan sesuai spesifikasi dokumen (patroli & mengejar)
-@export var patrol_speed: float = 20
-@export var chase_speed: float = 50
+enum State { PATROL, INVESTIGATE, CHASE, SEARCH, STUNNED, CALM }
 
-# Referensi node
+@export var patrol_speed: float = 20
+@export var chase_speed: float = 51
+@export var vision_range: float = 50
+@export var near_sense_range: float = 10  
+@export var vision_angle: float = 110.0
+@export var lose_sight_time: float = 2.5    
+@export var search_time: float = 3.0        
+@export var current_state: State = State.PATROL
+@export var patrol_points: Array[Node2D] = []
+
 @onready var nav_agent: NavigationAgent2D = $NavigationAgent2D
 @onready var vision_ray: RayCast2D = $VisionRayCast
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 
-# Variabel State & Patroli
-enum State { PATROL, INVESTIGATE, CHASE, SEARCH, STUNNED, CALM }
-@export var current_state: State = State.PATROL
-
-@export var patrol_points: Array[Node2D] = [] # Daftar titik patroli di level
+var player: Player = null
 var current_patrol_index: int = 0
-
-# Referensi ke pemain (bisa diisi otomatis saat game mulai)
-var player: Node2D = null
-
-# Parameter Persepsi Pengelihatan
-var vision_range: float = 8.0  # Jarak lihat normal 
-var vision_angle: float = 110.0  # Sudut pandang (dalam derajat)
-
-# Menyimpan arah horizontal terakhir ("left" atau "right") untuk animasi
+var facing: Vector2 = Vector2.DOWN
 var last_facing: String = "right"
+var last_seen_position: Vector2 = Vector2.ZERO
+var lost_timer: float = 0.0
+var search_timer: float = 0.0
 
 func _ready() -> void:
-	# Mencari node player secara otomatis di grup "player"
-	await get_tree().process_frame
-	if get_tree().has_group("player"):
-		player = get_tree().get_first_node_in_group("player")
-	
-	# Hubungkan target navigasi awal jika ada titik patroli
+	nav_agent.path_desired_distance = 8.0
+	nav_agent.target_desired_distance = 12.0
+	await get_tree().physics_frame          # tunggu navigasi siap
+	player = get_tree().get_first_node_in_group("player") as Player
 	_setup_next_patrol_point()
 
 func _physics_process(delta: float) -> void:
-	# Jangan bergerak jika sedang stun atau game pause
 	if current_state == State.STUNNED:
 		velocity = Vector2.ZERO
+		move_and_slide()
 		return
 
-	# 1. Jalankan logika deteksi pandangan (hanya jika belum di fase tenang/CALM)
 	if current_state != State.CALM:
-		check_player_vision()
+		_check_player_vision(delta)
 
-	# 2. Perilaku berdasarkan state
 	match current_state:
 		State.PATROL:
-			_handle_patrol(delta)
+			_handle_patrol()
 		State.CHASE:
-			_handle_chase(delta)
+			_handle_chase()
+		State.SEARCH:
+			_handle_search(delta)
 		State.CALM:
-			_handle_calm(delta)
+			_handle_calm()
 
-	# Perbarui arah hadap animasi berdasarkan pergerakan horizontal (velocity.x)
-	_update_animation_direction()
-
+	_update_facing()
+	_update_animation()
 	move_and_slide()
 
-# --- FUNGSI DETEKSI PANDANGAN (VISION) ---
-func check_player_vision() -> void:
-	if not player:
+
+func _check_player_vision(delta: float) -> void:
+	if player == null:
 		return
-
-	var distance_to_player: float = global_position.distance_to(player.global_position)
-	var current_vision_range = vision_range
-
-	if distance_to_player <= current_vision_range or distance_to_player <= 80.0:
-		if distance_to_player > 80.0:
-			var to_player = (player.global_position - global_position).normalized()
-			var facing_dir = velocity.normalized()
-			if facing_dir == Vector2.ZERO:
-				facing_dir = Vector2.DOWN
-				
-			var angle = rad_to_deg(facing_dir.angle_to(to_player))
-			if abs(angle) > (vision_angle / 2.0):
-				return
-
-		vision_ray.target_position = vision_ray.to_local(player.global_position)
-		vision_ray.force_raycast_update()
 		
-		if not vision_ray.is_colliding():
-			_enter_chase_state()
-		elif vision_ray.get_collider() == player:
-			_enter_chase_state()
-
-func _enter_chase_state() -> void:
-	if current_state != State.CHASE:
+	if _can_see_player():
+		last_seen_position = player.global_position
+		lost_timer = 0.0
 		current_state = State.CHASE
+	elif current_state == State.CHASE:
+		lost_timer += delta
 
-# --- LOGIKA GERAK PER STATE ---
-func _handle_patrol(delta: float) -> void:
+func _can_see_player() -> bool:
+	if player == null or player.is_hidden:
+		return false
+
+	var distance: float = global_position.distance_to(player.global_position)
+	if distance > vision_range:
+		return false
+
+
+	if distance > near_sense_range:
+		var to_player: Vector2 = global_position.direction_to(player.global_position)
+		var angle: float = rad_to_deg(absf(facing.angle_to(to_player)))
+		if angle > vision_angle / 2.0:
+			return false
+
+
+	vision_ray.target_position = vision_ray.to_local(player.global_position)
+	vision_ray.force_raycast_update()
+	if not vision_ray.is_colliding():
+		return true
+	return vision_ray.get_collider() == player
+
+
+func _handle_patrol() -> void:
 	if patrol_points.is_empty():
+		velocity = Vector2.ZERO
 		return
-	
 	if nav_agent.is_navigation_finished():
+		velocity = Vector2.ZERO
 		_setup_next_patrol_point()
 		return
+	_move_along_path(patrol_speed)
 
-	var next_path_pos: Vector2 = nav_agent.get_next_path_position()
-	var direction: Vector2 = global_position.direction_to(next_path_pos)
-	velocity = direction * patrol_speed
-	
-	# Saat patroli, gunakan animasi jalan (walk)
-	anim.play("walk_" + last_facing)
-
-func _handle_chase(delta: float) -> void:
-	if not player:
+func _handle_chase() -> void:
+	if lost_timer >= lose_sight_time:
+		_start_search()
 		return
-	
-	nav_agent.target_position = player.global_position
-	
+	nav_agent.target_position = last_seen_position
+	_move_along_path(chase_speed)
+
+func _start_search() -> void:
+	current_state = State.SEARCH
+	search_timer = search_time
+	nav_agent.target_position = last_seen_position
+
+func _handle_search(delta: float) -> void:
 	if not nav_agent.is_navigation_finished():
-		var next_path_pos: Vector2 = nav_agent.get_next_path_position()
-		var direction: Vector2 = global_position.direction_to(next_path_pos)
-		velocity = direction * chase_speed
-		
-		# Saat mengejar, gunakan animasi lari (run)
-		anim.play("run_" + last_facing)
-	else:
-		velocity = Vector2.ZERO
-		anim.play("walk_" + last_facing)
-
-func _handle_calm(delta: float) -> void:
-	if not player:
+		_move_along_path(patrol_speed)
 		return
-	nav_agent.target_position = player.global_position
+	velocity = Vector2.ZERO
+	search_timer -= delta
+	if search_timer <= 0.0:
+		current_state = State.PATROL
+		_setup_next_patrol_point()
+
+func _handle_calm() -> void:
+	if player == null:
+		velocity = Vector2.ZERO
+		return
 	if global_position.distance_to(player.global_position) > 200.0:
-		var next_path_pos: Vector2 = nav_agent.get_next_path_position()
-		velocity = global_position.direction_to(next_path_pos) * 55.0
-		anim.play("walk_" + last_facing)
+		nav_agent.target_position = player.global_position
+		_move_along_path(55.0)
 	else:
 		velocity = Vector2.ZERO
-		anim.play("walk_" + last_facing)
 
-# --- FUNGSI PENGATUR ARAH ANIMASI ---
-func _update_animation_direction() -> void:
-	# Jika Toya bergerak ke kiri/kanan secara signifikan, simpan arahnya
-	if abs(velocity.x) > 1.0:
-		if velocity.x > 0:
-			last_facing = "right"
+func stun(duration: float = 4.0) -> void:
+	current_state = State.STUNNED
+	await get_tree().create_timer(duration).timeout
+	current_state = State.PATROL
+	_setup_next_patrol_point()
+
+func _move_along_path(speed: float) -> void:
+	var next_path_pos: Vector2 = nav_agent.get_next_path_position()
+	velocity = global_position.direction_to(next_path_pos) * speed
+
+func _update_facing() -> void:
+	if velocity.length() > 1.0:
+		facing = velocity.normalized()
+	if absf(velocity.x) > 1.0:
+		last_facing = "right" if velocity.x > 0.0 else "left"
+
+func _update_animation() -> void:
+	var anim_name: String = ""
+	
+	if velocity.length() < 1.0:
+		if anim.sprite_frames.has_animation("idle"):
+			anim_name = "idle"
 		else:
-			last_facing = "left"
+			anim_name = "idle_" + last_facing
+	elif current_state == State.CHASE:
+		anim_name = "run_" + last_facing
+	else:
+		anim_name = "walk_" + last_facing
+
+	if anim.sprite_frames.has_animation(anim_name) and anim.animation != anim_name:
+		anim.play(anim_name)
 
 func _setup_next_patrol_point() -> void:
 	if patrol_points.is_empty():
 		return
-	nav_agent.target_position = patrol_points[current_patrol_index].global_position
+	
+	var target_node = patrol_points[current_patrol_index]
+	if target_node != null:
+		nav_agent.target_position = target_node.global_position
+		
 	current_patrol_index = (current_patrol_index + 1) % patrol_points.size()

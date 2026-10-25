@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://bytycsmbc1k3t" path="res://scripts/player_movement.gd" id="1_g2els"]
 [ext_resource type="Texture2D" uid="uid://bboem5ly8khva" path="res://assets/sprites/main walk run.png" id="3_dqkch"]
 [ext_resource type="Texture2D" uid="uid://bygsumwyhkttb" path="res://assets/sprites/main idle.png" id="3_qhqgy"]
+[ext_resource type="Texture2D" uid="uid://djbgk1nuic3kx" path="res://assets/sprites/torch_light.png" id="4_dqkch"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_qlg0r"]
 atlas = ExtResource("3_qhqgy")
@@ -386,10 +387,17 @@ animations = [{
 [sub_resource type="CircleShape2D" id="CircleShape2D_jps1b"]
 radius = 5.0
 
+[sub_resource type="Gradient" id="Gradient_dqkch"]
+offsets = PackedFloat32Array(0, 0.67045456)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_rwxtm"]
+gradient = SubResource("Gradient_dqkch")
+fill = 1
+fill_from = Vector2(0.49658704, 0.49658704)
+
 [node name="Player" type="CharacterBody2D" unique_id=257452258 groups=["player"]]
 script = ExtResource("1_g2els")
-walk_speed = 10
-run_speed = 16
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=2114756110]
 sprite_frames = SubResource("SpriteFrames_jps1b")
@@ -400,6 +408,17 @@ position = Vector2(0, 10)
 shape = SubResource("CircleShape2D_jps1b")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1211204898]
-zoom = Vector2(2.76, 2.76)
+position = Vector2(0, 8)
+zoom = Vector2(5.545, 5.545)
 position_smoothing_enabled = true
 position_smoothing_speed = 15.0
+
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=709611701]
+position = Vector2(0, 4)
+texture = SubResource("GradientTexture2D_rwxtm")
+
+[node name="FlashlightNode" type="PointLight2D" parent="." unique_id=1178871704 groups=["player"]]
+position = Vector2(4.5474735e-13, 10)
+scale = Vector2(0.18516985, 0.18516985)
+texture = ExtResource("4_dqkch")
+offset = Vector2(307.82547, -5.400448)
